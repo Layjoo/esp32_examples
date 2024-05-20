@@ -19,6 +19,7 @@ enum class DeviceStage
 // this for hold to power on/off
 unsigned long powerPressTime = 0;
 const unsigned long powerHoldDuration = 2000;
+
 DeviceStage device = DeviceStage::PowerOff;
 bool detectingHold = true;
 
@@ -206,6 +207,26 @@ void displayQRCode()
   display.display();
 }
 
+void checkDeviceBattery()
+{
+  int analogBatt = analogRead(batteryPin);
+  float battVoltage = batteryVoltage(analogBatt);
+  int battPercent = ceil(batteryPercent(battVoltage));
+  Serial.print(battPercent);
+  Serial.println(" %");
+
+  if (battPercent == 0)
+  {
+    displayBatteryWarning();
+    delay(3000);
+    device = DeviceStage::PowerOff;
+  }
+  else
+  {
+    displayQRCode();
+  }
+}
+
 void checkHoldPowerButton()
 {
   int buttonState = digitalRead(BUTTON_PIN);
@@ -224,7 +245,7 @@ void checkHoldPowerButton()
       {
       case DeviceStage::PowerOn:
         device = DeviceStage::PowerOff;
-        detectingHold = false; //prevent repeated toggling of device state when holding the switch
+        detectingHold = false; // prevent repeated toggling of device state when holding the switch
         digitalWrite(LEDPin, LOW);
         display.ssd1306_command(SSD1306_DISPLAYOFF);
         break;
@@ -270,7 +291,7 @@ void setup()
     for (;;)
       ;
   }
-  display.dim(true); //prevent display flashing after setup display
+  display.dim(true); // prevent display flashing after setup display
 }
 
 void loop()
@@ -279,23 +300,6 @@ void loop()
 
   if (device != DeviceStage::PowerOff)
   {
-
-    // check battery
-    int analogBatt = analogRead(batteryPin);
-    float battVoltage = batteryVoltage(analogBatt);
-    int battPercent = ceil(batteryPercent(battVoltage));
-    Serial.print(battPercent);
-    Serial.println(" %");
-
-    if (battPercent == 0)
-    {
-      displayBatteryWarning();
-      delay(3000);
-      device = DeviceStage::PowerOff;
-    }
-    else
-    {
-      displayQRCode();
-    }
+    checkDeviceBattery();
   }
 }
